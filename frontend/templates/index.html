@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raseed Assistant</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Raseed Assistant</h1>
+
+        <div class="feature">
+            <h2>Upload Receipt</h2>
+            <form id="receipt-form">
+                <input type="file" id="receipt-image" accept="image/*" required>
+                <button type="submit">Upload</button>
+            </form>
+            <div id="receipt-response"></div>
+        </div>
+
+        <div class="feature">
+            <h2>Natural Language Query</h2>
+            <form id="query-form">
+                <input type="text" id="query-text" placeholder="e.g., How much did I spend on groceries this month?" required>
+                <button type="submit">Query</button>
+            </form>
+            <div id="query-response"></div>
+        </div>
+
+        <div class="feature">
+            <h2>Spending Analysis</h2>
+            <button id="analysis-button">Get Spending Analysis</button>
+            <div id="analysis-response"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
