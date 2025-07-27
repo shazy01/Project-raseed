@@ -19,7 +19,7 @@ if page == "📄 Receipt Upload":
         with st.spinner("Uploading and analyzing..."):
             try:
                 files = {"file": (uploaded_file.name, uploaded_file, uploaded_file.type)}
-                response = requests.post("http://localhost:8000/api/receipts/upload/", files=files)
+                response = requests.post("http://127.0.0.1:8000/api/receipts/upload/", files=files)
 
                 if response.status_code == 201:
                     st.success("✅ Upload successful and data extracted!")
@@ -38,7 +38,7 @@ if page == "📄 Receipt Upload":
 # ----------------------------
 elif page == "🧠 Query Assistant":
     st.title("🧠 Query Assistant")
-    st.markdown("Enter a question to get an answer from the Django backend.")
+    st.markdown("Ask a question or give an action-based instruction.")
 
     query_input = st.text_input("Enter your query:")
 
@@ -47,15 +47,24 @@ elif page == "🧠 Query Assistant":
             st.warning("Please enter a query.")
         else:
             try:
-                with st.spinner("Thinking..."):
+                with st.spinner("Processing your request..."):
                     response = requests.post(
                         "http://localhost:8000/api/queries/ask/",
                         json={"query": query_input}
                     )
                     if response.status_code == 200:
-                        result = response.json()
-                        st.success("✅ Response received:")
-                        st.write(result.get("response", "No response found."))
+                        try:
+                            result = response.json()
+                            # Check if the response contains a wallet pass or structured JSON
+                            if "answer" in result and isinstance(result["answer"], str):
+                                st.success("✅ Response:")
+                                st.write(result["answer"])
+                            else:
+                                st.success("✅ JSON Response:")
+                                st.json(result)
+                        except Exception as parse_error:
+                            st.error("⚠️ Response received, but parsing failed.")
+                            st.text(response.text)
                     else:
                         st.error(f"❌ Error {response.status_code}: {response.text}")
             except Exception as e:
@@ -67,31 +76,47 @@ elif page == "🧠 Query Assistant":
 # ----------------------------
 elif page == "📊 Spending Analysis":
     st.title("📊 Spending Analysis")
-    st.markdown("Paste your JSON input below for analysis.")
+    st.markdown("Get personalized insights from your receipt data.")
 
-    json_input = st.text_area("Input JSON", height=200)
+    user_query = st.text_input("Ask a financial question (e.g. How can I save more?)")
 
     if st.button("Analyze Spending"):
-        if not json_input.strip():
-            st.warning("Please paste valid JSON.")
+        if not user_query.strip():
+            st.warning("Please enter a query.")
         else:
             try:
-                parsed_input = json.loads(json_input)  # Validate JSON
-                with st.spinner("Analyzing spending data..."):
+                with st.spinner("Analyzing your spending data..."):
                     response = requests.post(
                         "http://localhost:8000/api/spendinganalysis/analyze/",
-                        json=parsed_input
+                        json={"query": user_query}
                     )
+
                     if response.status_code == 200:
                         result = response.json()
-                        st.success("✅ Analysis complete!")
-                        st.subheader("🧾 Analysis Result")
-                        st.json(result)
+
+                        # Display Gemini's analysis
+                        analysis = result.get("analysis_text", "")
+                        st.subheader("🧠 Gemini Analysis")
+                        st.write(analysis)
+
+                        # Display chart data if available
+                        category_data = result.get("category_data", [])
+                        if category_data:
+                            import pandas as pd
+                            import altair as alt
+                            df = pd.DataFrame(category_data)
+                            st.subheader("📊 Item Count by Category")
+                            chart = alt.Chart(df).mark_bar().encode(
+                                x='category:N',
+                                y='item_count:Q',
+                                tooltip=['category', 'item_count']
+                            ).properties(width=600)
+                            st.altair_chart(chart, use_container_width=True)
+                        else:
+                            st.info("No categorized items to display.")
+
                     else:
-                        st.error(f"❌ Error: {response.status_code}")
-                        st.text(response.text)
-            except json.JSONDecodeError:
-                st.error("⚠️ Invalid JSON input.")
+                        st.error(f"❌ Error {response.status_code}: {response.text}")
             except Exception as e:
                 st.error("⚠️ An error occurred.")
                 st.exception(e)
